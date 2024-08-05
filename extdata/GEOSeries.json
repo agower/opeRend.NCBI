@@ -1,0 +1,51 @@
+{
+  "name": "GEOSeries",
+  "description": "Description of a GEO Series (GSE) record",
+  "variables": {
+    "geo_accession": {
+      "name": "'Series_geo_accession' field of GEO record (e.g., 'GSE1234')",
+      "type": "T"
+    },
+    "title": {
+      "name": "'Series_title' field of GEO record",
+      "type": "T"
+    },
+    "summary": {
+      "name": "'Series_summary' field(s) of GEO record",
+      "type": "T",
+      "is_array": true
+    },
+    "type": {
+      "name": "'Series_type' field(s) of GEO record (e.g., 'Expression profiling by array')",
+      "type": "T",
+      "is_array": true
+    },
+    "platform_id": {
+      "name": "'Series_platform_id' field(s) of GEO record (e.g., 'GPL1234')",
+      "type": "T",
+      "is_array": true
+    },
+    "pubmed_id": {
+      "name": "'Series_pubmed_id' field(s) of GEO record",
+      "type": "I",
+      "is_array": true
+    },
+    "geoPlatforms": {
+      "name": "IDs of GEOPlatform Entities corresponding to this Series",
+      "type": "E",
+      "entity_class_name": "GEOPlatform",
+      "is_array": true
+    },
+    "geoSamples": {
+      "name": "IDs of GEOSample Entities corresponding to this Series",
+      "type": "E",
+      "entity_class_name": "GEOSample",
+      "is_array": true
+    },
+    "affymetrixCELSet": {
+      "name": "ID of an AffymetrixCELSet Entity corresponding to this Series",
+      "type": "E",
+      "entity_class_name": "AffymetrixCELSet"
+    }
+  }
+}

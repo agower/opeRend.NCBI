@@ -1,0 +1,32 @@
+{
+  "name": "GEOPlatform",
+  "description": "Description of a GEO Platform (GPL) record",
+  "variables": {
+    "geo_accession": {
+      "name": "'Platform_geo_accession' field of GEO record (e.g., 'GPL1234')",
+      "type": "T"
+    },
+    "title": {
+      "name": "'Platform_title' field of GEO record",
+      "type": "T"
+    },
+    "manufacturer": {
+      "name": "'Platform_manufacturer' field of GEO record",
+      "type": "T"
+    },
+    "technology": {
+      "name": "'Platform_technology' field of GEO record",
+      "type": "T"
+    },
+    "organism": {
+      "name": "'Platform_organism' field(s) of GEO record",
+      "type": "T",
+      "is_array": true
+    },
+    "taxid": {
+      "name": "'Platform_taxid' field(s) of GEO record",
+      "type": "I",
+      "is_array": true
+    }
+  }
+}

@@ -1,0 +1,9 @@
+Package: opeRend.NCBI
+Title: Tools for working with NCBI resources using opeRend
+Version: 0.1-0
+Author: Adam Gower <agower@bu.edu>
+Maintainer: Adam Gower <agower@bu.edu>
+Authors@R: c(person("Adam", "Gower", email = "agower@bu.edu", role = c("aut", "cre")))
+Description: Provides EntityClass definitions for working with NCBI data in an Operend Core instance.
+Depends: R (>= 3.3.0), opeRend
+License: LGPL (>= 3) + file LICENSE
