@@ -7,7 +7,8 @@
 addGSE(GSE)
 }
 \arguments{
-\item{GSE}{A character vector of length 1 specifying a GEO Series accession number.}
+\item{GSE}{A character vector of length 1 specifying a GEO Series accession number OR
+a GEOquery GEO Series object.}
 }
 \value{
 If the operation is successful, an \code{\linkS4class{operendEntity}} object of the GEO Series.

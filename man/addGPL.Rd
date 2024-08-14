@@ -7,7 +7,8 @@
 addGPL(GPL)
 }
 \arguments{
-\item{GPL}{A GEOquery GEO Platform entity.}
+\item{GPL}{A character vector of length 1 specifying a GEO Platform accession number, OR
+a GEOquery GEO Platform object.}
 }
 \value{
 If the operation is successful, an \code{\linkS4class{operendEntity}} object of the GEO Platform.
@@ -19,8 +20,8 @@ otherwise extracts and uploads metadata from a GEO Platform as a new Operend
 \code{Entity} record.
 }
 \examples{
-GSE <- getGEO("GSE994", GSEMatrix = FALSE)
-lapply(GPLList(GSE), addGPL)
+GPL <- getGEO("GPL96", GSEMatrix = FALSE)
+addGPL(GPL)
 }
 \author{
 Dylan L. Tamayo \email{dltamayo@bu.edu}
