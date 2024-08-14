@@ -7,7 +7,8 @@
 addGSM(GSM)
 }
 \arguments{
-\item{GSM}{A GEOquery GEO Sample entity.}
+\item{GSM}{A character vector of length 1 specifying a GEO Sample accession number, OR
+a GEOquery GEO Sample object.}
 }
 \value{
 If the operation is successful, an \code{\linkS4class{operendEntity}} object of the GEO Sample.
