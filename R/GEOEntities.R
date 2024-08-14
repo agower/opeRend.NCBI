@@ -80,7 +80,7 @@ addAffymetrixCEL <- function(ftpUrl) {
   download.file(ftpUrl, destfile=celFile)
   
   # Read the .CEL.gz file using affyio
-  metadata <- opeRend.NCBI::processCELHeader(celFile)
+  metadata <- opeRend.NCBI:::processCELHeader(celFile)
   
   # Add CEL work file
   workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
