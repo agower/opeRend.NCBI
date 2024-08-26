@@ -88,6 +88,7 @@ addGPL <- function(GPL) {
 #' @import GEOquery
 #' @import opeRend
 #' @importFrom affyio read.celfile.header
+#' @importFrom utils download.file
 #' @export
 addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
   # Define a temporary file path to download the file. Clear file upon function exit
@@ -167,7 +168,7 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
 #' @returns
 #' If the operation is successful, an \code{\linkS4class{operendEntity}} object of the GEO Sample.
 #' @examples
-#' GSE <- getGEO("GSE994", GSEMatrix = FALSE)
+#' GSE <- GEOquery::getGEO("GSE994", GSEMatrix = FALSE)
 #' lapply(GSMList(GSE)[1:2], addGPL)
 #' @author Dylan L. Tamayo \email{dltamayo@@bu.edu}
 #' @import GEOquery
