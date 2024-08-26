@@ -4,10 +4,14 @@
 \alias{addAffymetrixCEL}
 \title{Add affymetrixCEL file to Operend}
 \usage{
-addAffymetrixCEL(ftpUrl)
+addAffymetrixCEL(ftpUrl, existingEntity = NULL)
 }
 \arguments{
 \item{ftpUrl}{Character vector of length 1 specifying the ftp link of the CEL file of a GEO Sample.}
+
+\item{existingEntity}{An optional parameter for an AffymetrixCEL Operend Entity, which, if provided,
+will be compared with the ftpURL CEL file to determine if the existingEntity
+requires updating.}
 }
 \value{
 If the operation is successful, an \code{\linkS4class{operendEntity}} object of the affymetrixCEL.

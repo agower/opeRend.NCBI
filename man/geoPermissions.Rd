@@ -19,7 +19,7 @@ This object contains permission settings for adding GSE, GPL, GSM,
 affymetrixCEL, and affymetrixCELSet Entities, as well as associated work files.
 }
 \examples{
-opeRend.NCBI::geoPermissions
+geoPermissions
 }
 \seealso{
 \code{\link[opeRend]{operendPermissions}}

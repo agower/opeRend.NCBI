@@ -14,10 +14,10 @@ a GEOquery GEO Platform object.}
 If the operation is successful, an \code{\linkS4class{operendEntity}} object of the GEO Platform.
 }
 \description{
-This function queries Operend for the accession number of a GEO Platform; if 
-the GPL has previously been uploaded, retrieves the \code{Entity} record,
-otherwise extracts and uploads metadata from a GEO Platform as a new Operend
-\code{Entity} record.
+This function queries Operend for the accession number of a GEO Platform. If 
+the GPL has previously been uploaded, retrieves the \code{Entity} record and
+checks for any updates. If the GPL has not been uploaded, extracts and
+uploads metadata from a GEO Platform as a new Operend \code{Entity} record.
 }
 \examples{
 GPL <- getGEO("GPL96", GSEMatrix = FALSE)
