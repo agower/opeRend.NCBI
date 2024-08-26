@@ -112,7 +112,7 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
     ScanDate = metadata$ScanDate
   )
   
-  # If existing affyEntity provided, attempt to update it
+  # If existingEntity provided, attempt to update it
   if(!is.null(existingEntity)){
     if (tools::md5sum(celFile) != getWorkFileProperties(existingEntity$workFile)@hash) {
       # Add CEL work file
@@ -123,7 +123,7 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
       affymetrixCELList$workFile <- opeRend::objectId(workFile)
       
       affymetrixCELEntity <- updateGEO(
-        id = objectId(affyEntity),
+        id = objectId(existingEntity),
         variables = affymetrixCELList
       )
       
