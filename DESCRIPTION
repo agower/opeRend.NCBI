@@ -6,13 +6,14 @@ Maintainer: Adam Gower <agower@bu.edu>
 Authors@R: c(
   person("Adam", "Gower", email = "agower@bu.edu", role = c("aut", "cre")),
   person("Dylan", "Tamayo", email = "dltamayo@bu.edu", role = c("aut"))
-)
+  )
 Description: Provides EntityClass definitions for working with NCBI data in an Operend Core instance.
 Depends: R (>= 3.3.0), opeRend
 License: LGPL (>= 3) + file LICENSE
 Encoding: UTF-8
 Imports:
-  opeRend,
   GEOquery,
-  affyio
+  affyio,
+  methods,
+  utils
 RoxygenNote: 7.3.2

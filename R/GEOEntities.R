@@ -88,6 +88,7 @@ addGPL <- function(GPL) {
 #' @import GEOquery
 #' @import opeRend
 #' @importFrom affyio read.celfile.header
+#' @importFrom utils download.file
 #' @export
 addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
   # Define a temporary file path to download the file. Clear file upon function exit
@@ -112,7 +113,7 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
     ScanDate = metadata$ScanDate
   )
   
-  # If existing affyEntity provided, attempt to update it
+  # If existingEntity provided, attempt to update it
   if(!is.null(existingEntity)){
     if (tools::md5sum(celFile) != getWorkFileProperties(existingEntity$workFile)@hash) {
       # Add CEL work file
@@ -123,7 +124,7 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
       affymetrixCELList$workFile <- opeRend::objectId(workFile)
       
       affymetrixCELEntity <- updateGEO(
-        id = objectId(affyEntity),
+        id = objectId(existingEntity),
         variables = affymetrixCELList
       )
       
@@ -167,7 +168,7 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
 #' @returns
 #' If the operation is successful, an \code{\linkS4class{operendEntity}} object of the GEO Sample.
 #' @examples
-#' GSE <- getGEO("GSE994", GSEMatrix = FALSE)
+#' GSE <- GEOquery::getGEO("GSE994", GSEMatrix = FALSE)
 #' lapply(GSMList(GSE)[1:2], addGPL)
 #' @author Dylan L. Tamayo \email{dltamayo@@bu.edu}
 #' @import GEOquery

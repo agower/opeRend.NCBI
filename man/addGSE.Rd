@@ -14,8 +14,11 @@ a GEOquery GEO Series object.}
 If the operation is successful, an \code{\linkS4class{operendEntity}} object of the GEO Series.
 }
 \description{
-This function extracts and uploads metadata from a GEO Series, including associated
-Platforms, Samples, and affymetrixCEL files, as an Operend \code{Entity} record.
+This function queries Operend for the accession number of a GEO Series. If 
+the GSE has previously been uploaded, retrieves the \code{Entity} record and
+checks for any updates. If the GSE has not been uploaded, extracts and
+uploads metadata from a GEO Series and associated Platforms, Samples, and 
+affymetrixCEL files as a new Operend \code{Entity} record.
 }
 \examples{
 addGSE("GSE994")

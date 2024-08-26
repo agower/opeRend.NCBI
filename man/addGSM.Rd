@@ -14,11 +14,14 @@ a GEOquery GEO Sample object.}
 If the operation is successful, an \code{\linkS4class{operendEntity}} object of the GEO Sample.
 }
 \description{
-This function extracts and uploads metadata from a GEO Sample, including associated
-affymetrixCEL files, as an Operend \code{Entity} record.
+This function queries Operend for the accession number of a GEO Sample. If 
+the GSM has previously been uploaded, retrieves the \code{Entity} record and
+checks for any updates. If the GSM has not been uploaded, extracts and
+uploads metadata from a GEO Sample and associated affymetrixCEL files as a
+new Operend \code{Entity} record.
 }
 \examples{
-GSE <- getGEO("GSE994", GSEMatrix = FALSE)
+GSE <- GEOquery::getGEO("GSE994", GSEMatrix = FALSE)
 lapply(GSMList(GSE)[1:2], addGPL)
 }
 \author{

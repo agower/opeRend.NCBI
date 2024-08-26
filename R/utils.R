@@ -25,6 +25,7 @@ geoPermissions <- opeRend::operendPermissions(
 #' @returns A character vector of length 1 representing a formatted operendDate. 
 #' @examples 
 #' processDate("Feb 19 2004")
+#' @importFrom methods as
 processDate <- function(d) {
   as(as.Date(d, format="%b %d %Y"), "operendDate")
 }
@@ -103,6 +104,7 @@ needsUpdate <- function(entity, last_update_date) {
 #' or a GEOquery GEO object.
 #' @param GEOqueryClass A character vector of length 1 specifying the class of
 #' the GEOquery GEO object to be returned.
+#' @importFrom methods is
 #' @returns A GEOquery GEO object.
 retrieveGEOquery <- function(GEO, GEOqueryClass = NULL) {
   if (is(GEO, GEOqueryClass)) {
