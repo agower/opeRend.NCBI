@@ -1,10 +1,10 @@
 #' @name addGPL
 #' @title Add GEO Platform to Operend
 #' @description
-#' This function queries Operend for the accession number of a GEO Platform; if 
-#' the GPL has previously been uploaded, retrieves the \code{Entity} record,
-#' otherwise extracts and uploads metadata from a GEO Platform as a new Operend
-#' \code{Entity} record.
+#' This function queries Operend for the accession number of a GEO Platform. If 
+#' the GPL has previously been uploaded, retrieves the \code{Entity} record and
+#' checks for any updates. If the GPL has not been uploaded, extracts and
+#' uploads metadata from a GEO Platform as a new Operend \code{Entity} record.
 #' @param GPL 
 #' A character vector of length 1 specifying a GEO Platform accession number, OR
 #' a GEOquery GEO Platform object.
@@ -19,37 +19,52 @@
 #' @export
 addGPL <- function(GPL) {
   # Retrieve GPL data
-  metadata <- GEOquery::Meta(opeRend.NCBI:::retrieveGEOquery(GPL, "GPL"))
+  metadata <- GEOquery::Meta(retrieveGEOquery(GPL, "GPL"))
   geo_accession <- metadata$geo_accession
+  last_update_date <- processDate(metadata$last_update_date)
   
   # Query if GPL accession is present in Operend
-  query <- opeRend.NCBI:::queryOperend("GEOPlatform", geo_accession)
+  query <- queryOperend("GEOPlatform", geo_accession)
+  
+  # Stage metadata
+  gplList <- list(
+    geo_accession = geo_accession,
+    last_update_date = last_update_date,
+    manufacturer = metadata$manufacturer,
+    organism = metadata$organism,
+    taxid = as.numeric(metadata$taxid),
+    technology = metadata$technology,
+    title = metadata$title
+  )
   
   # If GPL accession is not present in Operend, add GPL entity
   if(is.null(query)) {
     # Add to Operend
-    gplList <- list(
-      geo_accession = geo_accession,
-      manufacturer = metadata$manufacturer,
-      organism = metadata$organism,
-      taxid = as.numeric(metadata$taxid),
-      technology = metadata$technology,
-      title = metadata$title
-    )
-    
-    gplEntity <- opeRend.NCBI:::addGEO(
-      class = 'GEOPlatform',
+    gplEntity <- addGEO(
+      class = "GEOPlatform",
       variables = gplList
     )
-  } else {
-    # If GPL accession is already present in Operend, return the oldest GPL entity
-    cat("GPL accession number already in Operend, retrieving record:\n")
-    gplEntity <- query
-    cat(c('GEOPlatform record', opeRend::objectId(gplEntity), 'retrieved.\n'))
+    
+    return(gplEntity)
+  }
+    
+  # If GPL accession is already present in Operend, return the oldest GPL entity
+  cat("GPL accession number already in Operend, retrieving record:\n")
+  cat(c("GEOPlatform record", opeRend::objectId(query), "retrieved.\n"))
+    
+  # Check if GPL entity requires updating
+  if(needsUpdate(query, last_update_date)) {
+    cat("Updating GEOPlatform entity:\n")
+    gplEntity <- updateGEO(
+      id = opeRend::objectId(query),
+      variables = gplList
+    )
+    
+    return(gplEntity)
   }
   
-  # Return GEO Platform Entity
-  return(gplEntity)
+  # If no update is needed, return the existing entry
+  return(query)
 }
 
 #' @name addAffymetrixCEL
@@ -59,6 +74,10 @@ addGPL <- function(GPL) {
 #' file as an Operend \code{Entity} record and \code{WorkFile}.
 #' @param ftpUrl
 #' Character vector of length 1 specifying the ftp link of the CEL file of a GEO Sample.
+#' @param existingEntity
+#' An optional parameter for an AffymetrixCEL Operend Entity, which, if provided,
+#' will be compared with the ftpURL CEL file to determine if the existingEntity
+#' requires updating.
 #' @returns
 #' If the operation is successful, an \code{\linkS4class{operendEntity}} object of the affymetrixCEL.
 #' @examples
@@ -70,25 +89,21 @@ addGPL <- function(GPL) {
 #' @import opeRend
 #' @importFrom affyio read.celfile.header
 #' @export
-addAffymetrixCEL <- function(ftpUrl) {
+addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
   # Define a temporary file path to download the file. Clear file upon function exit
   filenames <- basename(ftpUrl)
   celFile <- file.path(tempdir(), filenames)
   on.exit(unlink(celFile))
   
   # Download the file
-  download.file(ftpUrl, destfile=celFile)
+  download.file(ftpUrl, destfile = celFile)
   
   # Read the .CEL.gz file using affyio
-  metadata <- opeRend.NCBI::processCELHeader(celFile)
+  metadata <- processCELHeader(celFile)
   
-  # Add CEL work file
-  workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
-                                   storage = "geo", permissions = opeRend.NCBI::geoPermissions)
-  
-  # Add to Operend
+  # Stage metadata; workFile will be added later
   affymetrixCELList <- list(
-    workFile = opeRend::objectId(workFile),
+    workFile = NULL,
     filenames = filenames,
     
     cdfName = metadata$cdfName,
@@ -97,8 +112,40 @@ addAffymetrixCEL <- function(ftpUrl) {
     ScanDate = metadata$ScanDate
   )
   
-  affymetrixCELEntity <- opeRend.NCBI:::addGEO(
-    class = 'AffymetrixCEL',
+  # If existing affyEntity provided, attempt to update it
+  if(!is.null(existingEntity)){
+    if (tools::md5sum(celFile) != getWorkFileProperties(existingEntity$workFile)@hash) {
+      # Add CEL work file
+      workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
+                                       storage = "geo", permissions = geoPermissions)
+      
+      # Update Operend
+      affymetrixCELList$workFile <- opeRend::objectId(workFile)
+      
+      affymetrixCELEntity <- updateGEO(
+        id = objectId(affyEntity),
+        variables = affymetrixCELList
+      )
+      
+      # Trash old workFile
+      updateWorkFileProperties(existingEntity$workFile, isTrashed = TRUE)
+      
+      return(affymetrixCELEntity)
+    }
+    # If existing entity does not require updating, return existing entity
+    return(existingEntity)
+  }
+  
+  # If no existing entity provided, create new entity
+  # Add CEL work file
+  workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
+                                   storage = "geo", permissions = geoPermissions)
+  
+  # Add to Operend
+  affymetrixCELList$workFile <- opeRend::objectId(workFile)
+  
+  affymetrixCELEntity <- addGEO(
+    class = "AffymetrixCEL",
     variables = affymetrixCELList
   )
   
@@ -109,8 +156,11 @@ addAffymetrixCEL <- function(ftpUrl) {
 #' @name addGSM
 #' @title Add GEO Sample to Operend
 #' @description
-#' This function extracts and uploads metadata from a GEO Sample, including associated
-#' affymetrixCEL files, as an Operend \code{Entity} record.
+#' This function queries Operend for the accession number of a GEO Sample. If 
+#' the GSM has previously been uploaded, retrieves the \code{Entity} record and
+#' checks for any updates. If the GSM has not been uploaded, extracts and
+#' uploads metadata from a GEO Sample and associated affymetrixCEL files as a
+#' new Operend \code{Entity} record.
 #' @param GSM
 #' A character vector of length 1 specifying a GEO Sample accession number, OR
 #' a GEOquery GEO Sample object.
@@ -124,30 +174,26 @@ addAffymetrixCEL <- function(ftpUrl) {
 #' @import opeRend
 #' @export
 addGSM <- function(GSM) {
-  # Retrieve ftp link from GSM metadata
-  metadata <- GEOquery::Meta(opeRend.NCBI:::retrieveGEOquery(GSM, "GSM"))
+  # Retrieve GSM data
+  metadata <- GEOquery::Meta(retrieveGEOquery(GSM, "GSM"))
+  geo_accession <- metadata$geo_accession
+  last_update_date = processDate(metadata$last_update_date)
   supplementary_file <- metadata$supplementary_file
   
-  # Download CEL file from ftp link, then retrieve UUID of object after adding.
-  # If no CEL file is specified in metadata, set value to NULL
-  if (is.null(supplementary_file)) {
-    affymetrixCEL <- NULL
-    affymetrixCELUuid <- NULL
-  } else {
-    affymetrixCEL <- opeRend.NCBI::addAffymetrixCEL(supplementary_file)
-    affymetrixCELUuid <- opeRend::objectId(affymetrixCEL)
-  }
+  # Query if GSM accession is present in Operend
+  query <- queryOperend("GEOSample", geo_accession)
   
-  # Add to Operend
+  # Stage metadata. Add affymetrixCEL ID later
   gsmList <- list(
-    affymetrixCEL = affymetrixCELUuid,
+    affymetrixCEL = NULL,
     
     channel_count = as.numeric(metadata$channel_count),
     characteristics_ch1 = metadata$characteristics_ch1,
     characteristics_ch2 = metadata$characteristics_ch2,
     data_processing = metadata$data_processing,
     description = metadata$description,
-    geo_accession = metadata$geo_accession,
+    geo_accession = geo_accession,
+    last_update_date = last_update_date,
     molecule_ch1 = metadata$molecule_ch1,
     molecule_ch2 = metadata$molecule_ch2,
     platform_id = metadata$platform_id,
@@ -158,21 +204,56 @@ addGSM <- function(GSM) {
     type = metadata$type
   )
   
-  gsmEntity <- opeRend.NCBI:::addGEO(
-    class = 'GEOSample',
-    variables = gsmList
-  )
+  # If GPL accession is not present in Operend, add GPL entity
+  if(is.null(query)) {
+    # Download CEL file from ftp link, then add to Operend and retrieve ID.
+    # If no CEL file is specified in metadata, set to NULL
+    if (!is.null(supplementary_file)) {
+      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(supplementary_file))
+    }
+    
+    gsmEntity <- addGEO(
+      class = "GEOSample",
+      variables = gsmList
+    )
+    
+    return(gsmEntity)
+  }
+  # If GSM accession is already present in Operend, return the oldest GPL entity
+  cat("GSM accession number already in Operend, retrieving record:\n")
+  cat(c("GEOSample record", opeRend::objectId(query), "retrieved.\n"))
   
-  # Return affymetrixCEL and GSM Entity records. If GSM does not contain
-  # a supplementary file, affymetrixCEL value will be NULL.
-  return(list(affymetrixCEL = affymetrixCEL, geoSample = gsmEntity))
+  # Check if GSM entity requires updating
+  if(needsUpdate(query, last_update_date)) {
+    cat("Updating GEOSample entity:\n")
+    
+    # If supplementary file present and if affymetrixCEL requires updating,
+    # upload new affymetrixCEL to existing entity
+    if (!is.null(supplementary_file)) {
+      existingEntity <- getEntity(query$affymetrixCEL)
+      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(supplementary_file, existingEntity))
+    }
+
+    gsmEntity <- updateGEO(
+      id = opeRend::objectId(query),
+      variables = gsmList
+    )
+    
+    return(gsmEntity)
+  }
+  
+  # If no update is needed, return the existing entry
+  return(query)
 }
 
 #' @name addGSE
 #' @title Add GEO Series to Operend
 #' @description
-#' This function extracts and uploads metadata from a GEO Series, including associated
-#' Platforms, Samples, and affymetrixCEL files, as an Operend \code{Entity} record.
+#' This function queries Operend for the accession number of a GEO Series. If 
+#' the GSE has previously been uploaded, retrieves the \code{Entity} record and
+#' checks for any updates. If the GSE has not been uploaded, extracts and
+#' uploads metadata from a GEO Series and associated Platforms, Samples, and 
+#' affymetrixCEL files as a new Operend \code{Entity} record.
 #' @param GSE
 #' A character vector of length 1 specifying a GEO Series accession number OR
 #' a GEOquery GEO Series object.
@@ -185,35 +266,42 @@ addGSM <- function(GSM) {
 #' @import opeRend
 #' @export
 addGSE <- function(GSE) {
-  # Retrieve GSE metadata
+  # Retrieve GSE data
   cat("Retrieving GEOSeries:\n")
-  gseObj <- opeRend.NCBI:::retrieveGEOquery(GSE, 'GSE')
+  gseObj <- retrieveGEOquery(GSE, "GSE")
+  on.exit({
+    # List all files in the cache directory
+    cached_files <- list.files(tempdir(), full.names = TRUE)
+    
+    # Remove all cached files
+    unlink(cached_files, recursive = TRUE)
+  })
+  
   metadata <- GEOquery::Meta(gseObj)
   geo_accession <- metadata$geo_accession
+  last_update_date = processDate(metadata$last_update_date)
 
-  query <- opeRend.NCBI:::queryOperend("GEOSeries", geo_accession)
+  # Query if GSE accession is present in Operend
+  query <- queryOperend("GEOSeries", geo_accession)
   
-  # If GSE accession is not present in Operend, add GSE entity
-  if(is.null(query)) {
+  # Helper function to process and add GPL and GSM data
+  stageGSEList <- function(isUpdate = FALSE) {
     # Retrieve and add GPL data
     cat("Retrieving GPL data:\n")
     gplList <- GEOquery::GPLList(gseObj)
     
-    # Add GPL entities; unlist GPL IDs into vector
     cat("Uploading GPLs:\n")
-    geoPlatforms <- unlist(lapply(gplList, function(x) opeRend::objectId(opeRend.NCBI::addGPL(x))))
+    geoPlatforms <- lapply(gplList, addGPL)
     
     # Retrieve and add GSM data and corresponding affymetrixCEL file
     cat("Retrieving GSM data:\n")
     gsmList <- GEOquery::GSMList(gseObj) #[1:2]                 #truncate during testing
     
-    cat("Uploading GSM and affyCEL:\n")
-    affyGsmIds <- lapply(gsmList, addGSM)
+    cat("Uploading GSM and associated affymetrixCEL files:\n")
+    geoSamples <- lapply(gsmList, addGSM)
     
-    # Separate affymetrixCEL and GSM Entity IDs; unlist into vectors
-    affyIds <- opeRend.NCBI:::removeNull(lapply(affyGsmIds, function(x) x$affymetrixCEL))
-    affymetrixCELs <- unlist(lapply(affyIds, objectId))
-    geoSamples <- unlist(lapply(affyGsmIds, function(x) opeRend::objectId(x$geoSample)))
+    # Retrieve affymetrixCEL entity IDs from GSMs, removing any NULL values
+    affymetrixCELs <- unlist(removeNull(lapply(geoSamples, function(x) x$affymetrixCEL)))
     
     # Add affymetrixCELSet to Operend
     cat("Adding CEL set:\n")
@@ -224,19 +312,26 @@ addGSE <- function(GSE) {
       name = metadata$geo_accession
     )
     
-    affymetrixCELSetEntity <- opeRend.NCBI:::addGEO(
-      class = 'AffymetrixCELSet',
-      variables = affymetrixCELSetList
-    )
+    if(isUpdate) {
+      affymetrixCELSetEntity <- updateGEO(
+        id = query$affymetrixCELSet,
+        variables = affymetrixCELSetList
+      )
+    } else {
+      affymetrixCELSetEntity <- addGEO(
+        class = "AffymetrixCELSet",
+        variables = affymetrixCELSetList
+      )
+    }
     
     # Add GSE to Operend
-    cat("Adding GSE:\n")
     gseList <- list(
       affymetrixCELSet = opeRend::objectId(affymetrixCELSetEntity),
-      geoSamples = geoSamples,
-      geoPlatforms = geoPlatforms,
+      geoSamples = unlist(lapply(geoSamples, opeRend::objectId)),
+      geoPlatforms = unlist(lapply(geoPlatforms, opeRend::objectId)),
       
       geo_accession = geo_accession,
+      last_update_date = last_update_date,
       platform_id = metadata$platform_id,
       pubmed_id = as.numeric(metadata$pubmed_id),
       summary = metadata$summary,
@@ -244,24 +339,39 @@ addGSE <- function(GSE) {
       type = metadata$type
     )
     
-    gseEntity <- opeRend.NCBI:::addGEO(
-      class = 'GEOSeries',
+    return(gseList)
+  }
+  
+  # If GSE accession is not present in Operend, add GSE entity
+  if(is.null(query)) {
+    cat("Adding GSE:\n")
+    gseList <- stageGSEList(isUpdate = FALSE)
+    
+    gseEntity <- addGEO(
+      class = "GEOSeries",
       variables = gseList
     )
+    
+    return(gseEntity)
+  }
 
-  } else {
-    # If GSE accession is already present in Operend, return the oldest GSE entity
-    cat("GSE accession number already in Operend, retrieving record:\n")
-    gseEntity <- query
-    cat(c('GEOSeries record', opeRend::objectId(gseEntity), 'retrieved.\n'))
-  } 
+  # If GSE accession is already present in Operend, return the oldest GSE entity
+  cat("GSE accession number already in Operend, retrieving record:\n")
+  cat(c("GEOSeries record", opeRend::objectId(query), "retrieved.\n"))
+
+  # Check if GSE entity requires updating
+  if(needsUpdate(query, last_update_date)) {
+    cat(c("Updating GEOSeries record", opeRend::objectId(query), ".\n"))
+    gseList <- stageGSEList(isUpdate = TRUE)
+    
+    gseEntity <- updateGEO(
+      id = opeRend::objectId(query),
+      variables = gseList
+    )
+    
+    return(gseEntity)
+  }
   
-  # List all files in the cache directory
-  cached_files <- list.files(tempdir(), full.names = TRUE)
-  
-  # Remove all cached files
-  unlink(cached_files, recursive = TRUE)
-  
-  # Return GEO Series Entity
-  return(gseEntity)
+  # If no update is needed, return the existing entry
+  return(query)
 }

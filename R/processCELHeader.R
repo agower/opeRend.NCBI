@@ -32,7 +32,7 @@ processCELHeader <- function (filename)
   # If the CEL file header can be read, the 'ScanDate' field of the file
   # header is returned; otherwise, the function terminates with an error
   # message.
-  header <- try(read.celfile.header(filename, info="full"), silent=TRUE)
+  header <- try(affyio::read.celfile.header(filename, info="full"), silent=TRUE)
   if (!inherits(header, "try-error")) {
     # Extract selected fields from the CEL file header to a named list
     result <- list(
