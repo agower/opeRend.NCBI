@@ -9,7 +9,7 @@
 #'   \item{_other}{A character vector with permission "R".}
 #' }
 #' @examples
-#' opeRend.NCBI::geoPermissions
+#' geoPermissions
 #' @seealso \code{\link[opeRend]{operendPermissions}}
 #' @import opeRend
 #' @export
@@ -17,6 +17,17 @@ geoPermissions <- opeRend::operendPermissions(
   "geo" = c("R", "U", "PR", "PU"),
   "_other" = c("R")
 )
+
+
+#' @name processDate
+#' @title Format dates for Operend date variables.
+#' @param d A character vector of length 1 representing a date.
+#' @returns A character vector of length 1 representing a formatted operendDate. 
+#' @examples 
+#' processDate("Feb 19 2004")
+processDate <- function(d) {
+  as(as.Date(d, format="%b %d %Y"), "operendDate")
+}
 
 #' @name removeNull
 #' @title Remove \code{NULL} values from a list
@@ -43,9 +54,46 @@ removeNull <- function(list_obj) {
 addGEO <- function(class, variables) {
   opeRend::addEntity(
     class = class,
-    variables = opeRend.NCBI:::removeNull(variables),
-    permissions = opeRend.NCBI::geoPermissions
+    variables = removeNull(variables),
+    permissions = geoPermissions
   )
+}
+
+#' @name addGEO
+#' @title Add GEO Entities to Operend
+#' @description
+#' Wrapper for updating GEO entities.
+#' @param id 
+#' A character string specifying the id of the Entity record
+#' @param variables
+#' A list specifying variables of the Entity record to be added.
+#' \code{NULL} values will be removed from the list prior to adding to Operend.
+#' @returns
+#' If the operation is successful, an \code{\linkS4class{operendEntity}} object.
+#' @seealso \code{\link[opeRend]{addEntity}}
+#' @author Dylan L. Tamayo \email{dltamayo@@bu.edu}
+#' @import opeRend
+updateGEO <- function(id, variables) {
+  opeRend::updateEntity(
+    id = id,
+    variables = removeNull(variables)
+  )
+}
+
+#' @name needsUpdate
+#' @title Logic for comparing last updated dates.
+#' @description
+#' Helper function that returns TRUE if two dates are not equal (therefore
+#' requiring an update), or FALSE if two dates are equal (therefore indicating
+#' that the provided Operend entity is up to date with the NCBI entry).
+#' @param entity
+#' An Operend GEO entity containing a last_update_date variable.
+#' @param last_update_date 
+#' A character vector of length 1 representing an operendDate.
+#' @returns A character vector of length 1 representing a formatted operendDate. 
+needsUpdate <- function(entity, last_update_date) {
+  # TRUE if entity is not up to date, FALSE if up to date
+  entity$last_update_date != last_update_date
 }
 
 # Wrapper function that returns either the submitted GEOquery object or retrieves GEOquery object based on accession number
@@ -63,7 +111,7 @@ retrieveGEOquery <- function(GEO, GEOqueryClass = NULL) {
     stop("Argument 'GEO' must be a character string")
   } else if ((length(GEO) != 1)) {
     stop("Argument 'GEO' must be of length 1")
-  } else if (!grepl(paste0(c('^', GEOqueryClass), collapse = ''), GEO)) {
+  } else if (!grepl(paste0(c("^", GEOqueryClass), collapse = ""), GEO)) {
     stop(c("Argument ", GEO, " must specify proper ", GEOqueryClass, " accession number"))
   }
   GEOquery::getGEO(GEO, GSEMatrix = FALSE)
