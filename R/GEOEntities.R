@@ -210,7 +210,9 @@ addGSM <- function(GSM) {
     # Download CEL file from ftp link, then add to Operend and retrieve ID.
     # If no CEL file is specified in metadata, set to NULL
     if (!is.null(supplementary_file)) {
-      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(supplementary_file))
+      if (grepl("\\.CEL\\.gz$", supplementary_file, ignore.case = TRUE)) {
+        gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(supplementary_file))
+      }
     }
     
     gsmEntity <- addGEO(
@@ -231,8 +233,10 @@ addGSM <- function(GSM) {
     # If supplementary file present and if affymetrixCEL requires updating,
     # upload new affymetrixCEL to existing entity
     if (!is.null(supplementary_file)) {
-      existingEntity <- getEntity(query$affymetrixCEL)
-      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(supplementary_file, existingEntity))
+      if (grepl("\\.CEL\\.gz$", supplementary_file, ignore.case = TRUE)) {
+        existingEntity <- getEntity(query$affymetrixCEL)
+        gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(supplementary_file, existingEntity))
+      }
     }
 
     gsmEntity <- updateGEO(
