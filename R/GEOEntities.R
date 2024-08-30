@@ -113,45 +113,41 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
     ScanDate = metadata$ScanDate
   )
   
-  # If existingEntity provided, attempt to update it
-  if(!is.null(existingEntity)){
-    if (tools::md5sum(celFile) != getWorkFileProperties(existingEntity$workFile)@hash) {
-      # Add CEL work file
-      workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
-                                       storage = "geo", permissions = geoPermissions)
-      
-      # Update Operend
-      affymetrixCELList$workFile <- opeRend::objectId(workFile)
-      
-      affymetrixCELEntity <- updateGEO(
-        id = objectId(existingEntity),
-        variables = affymetrixCELList
-      )
-      
-      # Trash old workFile
-      updateWorkFileProperties(existingEntity$workFile, isTrashed = TRUE)
-      
-      return(affymetrixCELEntity)
-    }
-    # If existing entity does not require updating, return existing entity
-    return(existingEntity)
+  # If no existing entity provided, create new entity
+  if(is.null(existingEntity)){
+    workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
+                                     storage = "geo", permissions = geoPermissions)
+    
+    affymetrixCELList$workFile <- opeRend::objectId(workFile)
+    
+    affymetrixCELEntity <- addGEO(
+      class = "AffymetrixCEL",
+      variables = affymetrixCELList
+    )
+    
+    return(affymetrixCELEntity)
   }
   
-  # If no existing entity provided, create new entity
-  # Add CEL work file
-  workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
-                                   storage = "geo", permissions = geoPermissions)
+  # Attempt to update existingEntity provided
+  if (tools::md5sum(celFile) != getWorkFileProperties(existingEntity$workFile)@hash) {
+    workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
+                                     storage = "geo", permissions = geoPermissions)
+    
+    affymetrixCELList$workFile <- opeRend::objectId(workFile)
+    
+    affymetrixCELEntity <- updateGEO(
+      id = objectId(existingEntity),
+      variables = affymetrixCELList
+    )
+    
+    # Trash old workFile
+    updateWorkFileProperties(existingEntity$workFile, isTrashed = TRUE)
+    
+    return(affymetrixCELEntity)
+  }
   
-  # Add to Operend
-  affymetrixCELList$workFile <- opeRend::objectId(workFile)
-  
-  affymetrixCELEntity <- addGEO(
-    class = "AffymetrixCEL",
-    variables = affymetrixCELList
-  )
-  
-  # Return affymetrixCEL Entity
-  return(affymetrixCELEntity)
+  # If existing entity does not require updating, return existing entity
+  return(existingEntity)
 }
 
 #' @name addGSM
