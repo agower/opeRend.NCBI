@@ -179,7 +179,7 @@ addGSM <- function(GSM) {
   metadata <- GEOquery::Meta(retrieveGEOquery(GSM, "GSM"))
   geo_accession <- metadata$geo_accession
   last_update_date = processDate(metadata$last_update_date)
-  supplementary_file <- metadata$supplementary_file
+  ftpUrl <- getCELurl(metadata$supplementary_file)
   
   # Query if GSM accession is present in Operend
   query <- queryOperend("GEOSample", geo_accession)
@@ -207,12 +207,10 @@ addGSM <- function(GSM) {
   
   # If GPL accession is not present in Operend, add GPL entity
   if(is.null(query)) {
-    # Download CEL file from ftp link, then add to Operend and retrieve ID.
-    # If no CEL file is specified in metadata, set to NULL
-    if (!is.null(supplementary_file)) {
-      if (grepl("\\.CEL\\.gz$", supplementary_file, ignore.case = TRUE)) {
-        gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(supplementary_file))
-      }
+    # If CEL file specified in metadata, download CEL file,
+    # then add to Operend and retrieve ID.
+    if (!is.null(ftpUrl)) {
+      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(ftpUrl))
     }
     
     gsmEntity <- addGEO(
@@ -222,6 +220,7 @@ addGSM <- function(GSM) {
     
     return(gsmEntity)
   }
+  
   # If GSM accession is already present in Operend, return the oldest GPL entity
   cat("GSM accession number already in Operend, retrieving record:\n")
   cat(c("GEOSample record", opeRend::objectId(query), "retrieved.\n"))
@@ -230,13 +229,10 @@ addGSM <- function(GSM) {
   if(needsUpdate(query, last_update_date)) {
     cat("Updating GEOSample entity:\n")
     
-    # If supplementary file present and if affymetrixCEL requires updating,
-    # upload new affymetrixCEL to existing entity
-    if (!is.null(supplementary_file)) {
-      if (grepl("\\.CEL\\.gz$", supplementary_file, ignore.case = TRUE)) {
-        existingEntity <- getEntity(query$affymetrixCEL)
-        gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(supplementary_file, existingEntity))
-      }
+    # If supplementary file present, check if affymetrixCEL requires updating
+    if (!is.null(ftpUrl)) {
+      existingEntity <- getEntity(query$affymetrixCEL)
+      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(ftpUrl, existingEntity))
     }
 
     gsmEntity <- updateGEO(

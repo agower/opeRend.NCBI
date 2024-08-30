@@ -96,6 +96,30 @@ needsUpdate <- function(entity, last_update_date) {
   entity$last_update_date != last_update_date
 }
 
+#' @name getCELurl
+#' @title Return first matching CEL file ftp link
+#' @description
+#' Helper function that checks character vector for an ftp link to a CEL file.
+#' @param supplementary_file
+#' A character vector or \code{NULL}.
+#' @returns A character vector of length 1 representing a ftp link to a CEL file,
+#' OR \code{NULL}.
+getCELurl <- function(supplementary_file) {
+  # Check if supplementary_file is not NULL
+  if (!is.null(supplementary_file)) {
+    # Find matches for "ftp://(...).CEL.gz" (case insensitive)
+    matches <- supplementary_file[grepl("ftp://(.+)\\.CEL\\.gz$", supplementary_file, ignore.case = TRUE)]
+    
+    # If there's at least one match, return the first one
+    if (length(matches) > 0) {
+      return(matches[1])
+    }
+  }
+  
+  # If supplementary_file is NULL or no matches are found, return NULL
+  return(NULL)
+}
+
 # Wrapper function that returns either the submitted GEOquery object or retrieves GEOquery object based on accession number
 #' @name retrieveGEOquery
 #' @title Retrieve GEOquery object based on th
