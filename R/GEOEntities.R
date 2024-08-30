@@ -39,7 +39,6 @@ addGPL <- function(GPL) {
   
   # If GPL accession is not present in Operend, add GPL entity
   if(is.null(query)) {
-    # Add to Operend
     gplEntity <- addGEO(
       class = "GEOPlatform",
       variables = gplList
@@ -76,7 +75,7 @@ addGPL <- function(GPL) {
 #' Character vector of length 1 specifying the ftp link of the CEL file of a GEO Sample.
 #' @param existingEntity
 #' An optional parameter for an AffymetrixCEL Operend Entity, which, if provided,
-#' will be compared with the ftpURL CEL file to determine if the existingEntity
+#' will be compared with the ftpUrl CEL file to determine if the existingEntity
 #' requires updating.
 #' @returns
 #' If the operation is successful, an \code{\linkS4class{operendEntity}} object of the affymetrixCEL.
@@ -95,8 +94,6 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
   filenames <- basename(ftpUrl)
   celFile <- file.path(tempdir(), filenames)
   on.exit(unlink(celFile))
-  
-  # Download the file
   download.file(ftpUrl, destfile = celFile)
   
   # Read the .CEL.gz file using affyio
@@ -266,11 +263,10 @@ addGSE <- function(GSE) {
   # Retrieve GSE data
   cat("Retrieving GEOSeries:\n")
   gseObj <- retrieveGEOquery(GSE, "GSE")
+  
+  # Remove all cached files after completion
   on.exit({
-    # List all files in the cache directory
     cached_files <- list.files(tempdir(), full.names = TRUE)
-    
-    # Remove all cached files
     unlink(cached_files, recursive = TRUE)
   })
   
