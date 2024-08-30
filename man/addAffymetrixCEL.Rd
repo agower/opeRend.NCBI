@@ -10,7 +10,7 @@ addAffymetrixCEL(ftpUrl, existingEntity = NULL)
 \item{ftpUrl}{Character vector of length 1 specifying the ftp link of the CEL file of a GEO Sample.}
 
 \item{existingEntity}{An optional parameter for an AffymetrixCEL Operend Entity, which, if provided,
-will be compared with the ftpURL CEL file to determine if the existingEntity
+will be compared with the ftpUrl CEL file to determine if the existingEntity
 requires updating.}
 }
 \value{
