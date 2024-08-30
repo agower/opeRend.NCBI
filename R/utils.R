@@ -18,7 +18,6 @@ geoPermissions <- opeRend::operendPermissions(
   "_other" = c("R")
 )
 
-
 #' @name processDate
 #' @title Format dates for Operend date variables.
 #' @param d A character vector of length 1 representing a date.
@@ -60,8 +59,8 @@ addGEO <- function(class, variables) {
   )
 }
 
-#' @name addGEO
-#' @title Add GEO Entities to Operend
+#' @name updateGEO
+#' @title Update Operend GEO Entities
 #' @description
 #' Wrapper for updating GEO entities.
 #' @param id 
@@ -118,7 +117,7 @@ retrieveGEOquery <- function(GEO, GEOqueryClass = NULL) {
   }
   GEOquery::getGEO(GEO, GSEMatrix = FALSE)
 }
-  
+
 #' @name queryOperend
 #' @title Query Operend for GEO accession number
 #' @description
