@@ -39,7 +39,6 @@ addGPL <- function(GPL) {
   
   # If GPL accession is not present in Operend, add GPL entity
   if(is.null(query)) {
-    # Add to Operend
     gplEntity <- addGEO(
       class = "GEOPlatform",
       variables = gplList
@@ -76,7 +75,7 @@ addGPL <- function(GPL) {
 #' Character vector of length 1 specifying the ftp link of the CEL file of a GEO Sample.
 #' @param existingEntity
 #' An optional parameter for an AffymetrixCEL Operend Entity, which, if provided,
-#' will be compared with the ftpURL CEL file to determine if the existingEntity
+#' will be compared with the ftpUrl CEL file to determine if the existingEntity
 #' requires updating.
 #' @returns
 #' If the operation is successful, an \code{\linkS4class{operendEntity}} object of the affymetrixCEL.
@@ -95,8 +94,6 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
   filenames <- basename(ftpUrl)
   celFile <- file.path(tempdir(), filenames)
   on.exit(unlink(celFile))
-  
-  # Download the file
   download.file(ftpUrl, destfile = celFile)
   
   # Read the .CEL.gz file using affyio
@@ -113,45 +110,41 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
     ScanDate = metadata$ScanDate
   )
   
-  # If existingEntity provided, attempt to update it
-  if(!is.null(existingEntity)){
-    if (tools::md5sum(celFile) != getWorkFileProperties(existingEntity$workFile)@hash) {
-      # Add CEL work file
-      workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
-                                       storage = "geo", permissions = geoPermissions)
-      
-      # Update Operend
-      affymetrixCELList$workFile <- opeRend::objectId(workFile)
-      
-      affymetrixCELEntity <- updateGEO(
-        id = objectId(existingEntity),
-        variables = affymetrixCELList
-      )
-      
-      # Trash old workFile
-      updateWorkFileProperties(existingEntity$workFile, isTrashed = TRUE)
-      
-      return(affymetrixCELEntity)
-    }
-    # If existing entity does not require updating, return existing entity
-    return(existingEntity)
+  # If no existing entity provided, create new entity
+  if(is.null(existingEntity)){
+    workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
+                                     storage = "geo", permissions = geoPermissions)
+    
+    affymetrixCELList$workFile <- opeRend::objectId(workFile)
+    
+    affymetrixCELEntity <- addGEO(
+      class = "AffymetrixCEL",
+      variables = affymetrixCELList
+    )
+    
+    return(affymetrixCELEntity)
   }
   
-  # If no existing entity provided, create new entity
-  # Add CEL work file
-  workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
-                                   storage = "geo", permissions = geoPermissions)
+  # Attempt to update existingEntity provided
+  if (tools::md5sum(celFile) != getWorkFileProperties(existingEntity$workFile)@hash) {
+    workFile <- opeRend::addWorkFile(celFile, fileType = ".CEL.gz",
+                                     storage = "geo", permissions = geoPermissions)
+    
+    affymetrixCELList$workFile <- opeRend::objectId(workFile)
+    
+    affymetrixCELEntity <- updateGEO(
+      id = objectId(existingEntity),
+      variables = affymetrixCELList
+    )
+    
+    # Trash old workFile
+    updateWorkFileProperties(existingEntity$workFile, isTrashed = TRUE)
+    
+    return(affymetrixCELEntity)
+  }
   
-  # Add to Operend
-  affymetrixCELList$workFile <- opeRend::objectId(workFile)
-  
-  affymetrixCELEntity <- addGEO(
-    class = "AffymetrixCEL",
-    variables = affymetrixCELList
-  )
-  
-  # Return affymetrixCEL Entity
-  return(affymetrixCELEntity)
+  # If existing entity does not require updating, return existing entity
+  return(existingEntity)
 }
 
 #' @name addGSM
@@ -179,7 +172,7 @@ addGSM <- function(GSM) {
   metadata <- GEOquery::Meta(retrieveGEOquery(GSM, "GSM"))
   geo_accession <- metadata$geo_accession
   last_update_date = processDate(metadata$last_update_date)
-  supplementary_file <- metadata$supplementary_file
+  ftpUrl <- getCELurl(metadata$supplementary_file)
   
   # Query if GSM accession is present in Operend
   query <- queryOperend("GEOSample", geo_accession)
@@ -207,10 +200,10 @@ addGSM <- function(GSM) {
   
   # If GPL accession is not present in Operend, add GPL entity
   if(is.null(query)) {
-    # Download CEL file from ftp link, then add to Operend and retrieve ID.
-    # If no CEL file is specified in metadata, set to NULL
-    if (!is.null(supplementary_file)) {
-      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(supplementary_file))
+    # If CEL file specified in metadata, download CEL file,
+    # then add to Operend and retrieve ID.
+    if (!is.null(ftpUrl)) {
+      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(ftpUrl))
     }
     
     gsmEntity <- addGEO(
@@ -220,6 +213,7 @@ addGSM <- function(GSM) {
     
     return(gsmEntity)
   }
+  
   # If GSM accession is already present in Operend, return the oldest GPL entity
   cat("GSM accession number already in Operend, retrieving record:\n")
   cat(c("GEOSample record", opeRend::objectId(query), "retrieved.\n"))
@@ -228,11 +222,10 @@ addGSM <- function(GSM) {
   if(needsUpdate(query, last_update_date)) {
     cat("Updating GEOSample entity:\n")
     
-    # If supplementary file present and if affymetrixCEL requires updating,
-    # upload new affymetrixCEL to existing entity
-    if (!is.null(supplementary_file)) {
+    # If supplementary file present, check if affymetrixCEL requires updating
+    if (!is.null(ftpUrl)) {
       existingEntity <- getEntity(query$affymetrixCEL)
-      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(supplementary_file, existingEntity))
+      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(ftpUrl, existingEntity))
     }
 
     gsmEntity <- updateGEO(
@@ -270,11 +263,10 @@ addGSE <- function(GSE) {
   # Retrieve GSE data
   cat("Retrieving GEOSeries:\n")
   gseObj <- retrieveGEOquery(GSE, "GSE")
+  
+  # Remove all cached files after completion
   on.exit({
-    # List all files in the cache directory
     cached_files <- list.files(tempdir(), full.names = TRUE)
-    
-    # Remove all cached files
     unlink(cached_files, recursive = TRUE)
   })
   
