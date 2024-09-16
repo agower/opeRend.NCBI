@@ -272,65 +272,93 @@ addGSE <- function(GSE) {
   
   metadata <- GEOquery::Meta(gseObj)
   geo_accession <- metadata$geo_accession
-  last_update_date = processDate(metadata$last_update_date)
-
+  last_update_date <- processDate(metadata$last_update_date)
+  
   # Query if GSE accession is present in Operend
   query <- queryOperend("GEOSeries", geo_accession)
   
+  # Helper function to process AffymetrixCELSets.
+  # Returns NULL if no GSMs in the GSE contain AffymetrixCELs
+  addAffyCELSets <- function(geoSamples, metadata) {
+    GSMsplitByGPL <- split(geoSamples, sapply(geoSamples, function(x) x$platform_id))
+    
+    CELSetArray <- lapply(metadata$platform_id, function(GPL){
+      # Retrieve affymetrixCELs corresponding to each GPL
+      affys <- lapply(GSMsplitByGPL[[GPL]], function(GSM){
+        GSM$affymetrixCEL
+      })
+      affymetrixCELs <- unlist(removeNull(affys))
+      
+      # Early return if there are no affymetrixCELs to upload as a set
+      if(is.null(affymetrixCELs)) {
+        return(NULL)
+      }
+      
+      cat("Uploading associated affymetrixCEL sets:\n")
+      affymetrixCELSetList <- list(
+        affymetrixCELs = affymetrixCELs,
+        
+        description = metadata$title,
+        name = metadata$geo_accession
+      )
+      
+      affymetrixCELSetEntity <- addGEO(
+        class = "AffymetrixCELSet",
+        variables = affymetrixCELSetList
+      )
+      
+      return(affymetrixCELSetEntity)
+    })
+    
+    return(removeNull(CELSetArray))
+  }
+  
   # Helper function to process and add GPL and GSM data
-  stageGSEList <- function(isUpdate = FALSE) {
+  stageGSEList <- function(gseObj, metadata) {
+    gseList <- list(
+      affymetrixCELSet = NULL,
+      geoSamples = NULL,
+      geoPlatforms = NULL,
+      
+      geo_accession = metadata$geo_accession,
+      last_update_date = last_update_date,
+      platform_id = metadata$platform_id,
+      pubmed_id = as.numeric(metadata$pubmed_id),
+      relation = metadata$relation,
+      summary = metadata$summary,
+      title = metadata$title,
+      type = metadata$type
+    )
+    
     # Retrieve and add GPL data
     cat("Retrieving GPL data:\n")
     gplList <- GEOquery::GPLList(gseObj)
     
     cat("Uploading GPLs:\n")
     geoPlatforms <- lapply(gplList, addGPL)
+    gseList$geoPlatforms <- unlist(lapply(geoPlatforms, opeRend::objectId))
     
-    # Retrieve and add GSM data and corresponding affymetrixCEL file
+    # Retrieve and add GSM data
     cat("Retrieving GSM data:\n")
     gsmList <- GEOquery::GSMList(gseObj) #[1:2]                 #truncate during testing
     
-    cat("Uploading GSM and associated affymetrixCEL files:\n")
+    cat("Uploading GSMs:\n")
     geoSamples <- lapply(gsmList, addGSM)
+    gseList$geoSamples <- unlist(lapply(geoSamples, opeRend::objectId))
     
-    # Retrieve affymetrixCEL entity IDs from GSMs, removing any NULL values
-    affymetrixCELs <- unlist(removeNull(lapply(geoSamples, function(x) x$affymetrixCEL)))
-    
-    # Add affymetrixCELSet to Operend
-    cat("Adding CEL set:\n")
-    affymetrixCELSetList <- list(
-      affymetrixCELs = affymetrixCELs,
-      
-      description = metadata$title,
-      name = metadata$geo_accession
-    )
-    
-    if(isUpdate) {
-      affymetrixCELSetEntity <- updateGEO(
-        id = query$affymetrixCELSet,
-        variables = affymetrixCELSetList
-      )
-    } else {
-      affymetrixCELSetEntity <- addGEO(
-        class = "AffymetrixCELSet",
-        variables = affymetrixCELSetList
-      )
+    # If GSE is a SuperSeries, add SubSeries and skip adding CEL sets
+    subseries <- getSubseries(metadata$relation)
+    if(!is.null(subseries)) {
+      cat("Uploading SubSeries:\n")
+      lapply(subseries, addGSE)
+      return(gseList)
     }
     
-    # Add GSE to Operend
-    gseList <- list(
-      affymetrixCELSet = opeRend::objectId(affymetrixCELSetEntity),
-      geoSamples = unlist(lapply(geoSamples, opeRend::objectId)),
-      geoPlatforms = unlist(lapply(geoPlatforms, opeRend::objectId)),
-      
-      geo_accession = geo_accession,
-      last_update_date = last_update_date,
-      platform_id = metadata$platform_id,
-      pubmed_id = as.numeric(metadata$pubmed_id),
-      summary = metadata$summary,
-      title = metadata$title,
-      type = metadata$type
-    )
+    # Add associated CEL sets, if present
+    affymetrixCELSets <- addAffyCELSets(geoSamples, metadata)
+    if(!is.null(affymetrixCELSets)) {
+      gseList$affymetrixCELSet <- unlist(lapply(affymetrixCELSets, opeRend::objectId))
+    }
     
     return(gseList)
   }
@@ -338,7 +366,7 @@ addGSE <- function(GSE) {
   # If GSE accession is not present in Operend, add GSE entity
   if(is.null(query)) {
     cat("Adding GSE:\n")
-    gseList <- stageGSEList(isUpdate = FALSE)
+    gseList <- stageGSEList(gseObj, metadata)
     
     gseEntity <- addGEO(
       class = "GEOSeries",
@@ -347,15 +375,20 @@ addGSE <- function(GSE) {
     
     return(gseEntity)
   }
-
+  
   # If GSE accession is already present in Operend, return the oldest GSE entity
   cat("GSE accession number already in Operend, retrieving record:\n")
   cat(c("GEOSeries record", opeRend::objectId(query), "retrieved.\n"))
-
+  
   # Check if GSE entity requires updating
   if(needsUpdate(query, last_update_date)) {
     cat(c("Updating GEOSeries record", opeRend::objectId(query), ".\n"))
-    gseList <- stageGSEList(isUpdate = TRUE)
+    gseList <- stageGSEList(gseObj, metadata)
+    
+    # Delete old affymetrixCELSets after setting variable to NULL
+    old_affymetrixCELSet <- query$affymetrixCELSet
+    opeRend::updateEntity(id = opeRend::objectId(query), variables = list(affymetrixCELSet = NULL))
+    lapply(old_affymetrixCELSet, opeRend::deleteEntity)
     
     gseEntity <- updateGEO(
       id = opeRend::objectId(query),
