@@ -168,19 +168,22 @@ retrieveGEOquery <- function(GEO, GEOqueryClass = NULL) {
 #' least recently added entry.
 #' @param class A character vector of length 1 specifying the Operend \code{EntityClass}
 #' of a GEO entity.
-#' @param accession A character vector of length 1 specifying the GEO accession number
-#' of the GEO class to be queried.
+#' @param variables A named list indicating variables in the Operend Entity to search for.
 #' @returns An \code{\linkS4class{operendEntity}} object, or \code{NULL}.
-queryOperend <- function(class, accession) {
+queryOperend <- function(class, variables) {
   # Query if accession number for class is present in Operend
-  query <- opeRend::listEntities(class, variables = list(geo_accession = accession))
+  query <- opeRend::listEntities(class, variables)
+  queryLength <- length(query)
   
-  # Return Operend entity if present. If multiple entries, return least recent.
-  if(length(query) == 0) {
-    entity <- NULL
-  } else {
-    entity <- query[[length(query)]]
+  # Return NULL if no entity available
+  if(queryLength == 0) {
+    return(NULL)
   }
   
-  return(entity)
+  if(queryLength > 1) {
+    warning("More than one entry found, returning least recent entity:\n")
+  }
+  
+  # Return least recent Operend entity
+  return(query[[queryLength]])
 }  
