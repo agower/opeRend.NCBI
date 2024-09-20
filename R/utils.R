@@ -92,6 +92,23 @@ updateGEO <- function(id, variables) {
 #' A character vector of length 1 representing an operendDate.
 #' @returns A character vector of length 1 representing a formatted operendDate. 
 needsUpdate <- function(entity, last_update_date) {
+  # If Operend entry date is NULL, it needs an update
+  if (is.null(entity$last_update_date) && !is.null(last_update_date)) {
+    return(TRUE)
+  }
+  
+  # If GEO entry is NULL but Operend entry is not NULL, assume update is needed
+  if (!is.null(entity$last_update_date) && is.null(last_update_date)) {
+    warning("Warning: GEO entry update date is NULL, updating Operend entry:\n")
+    return(TRUE)
+  }
+  
+  # If both entries are NULL, assume no update needed
+  if (is.null(entity$last_update_date) && is.null(last_update_date)) {
+    warning("Warning: Update dates for both Operend and GEO entries are NULL, skipping update:\n")
+    return(FALSE)
+  }
+  
   # TRUE if entity is not up to date, FALSE if up to date
   entity$last_update_date != last_update_date
 }
