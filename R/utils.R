@@ -148,16 +148,22 @@ getSubseries <- function(relationVector) {
 #' the GEOquery GEO object to be returned.
 #' @importFrom methods is
 #' @returns A GEOquery GEO object.
-retrieveGEOquery <- function(GEO, GEOqueryClass = NULL) {
+retrieveGEOquery <- function(GEO, GEOqueryClass) {
+  # Check if the input is already of the desired class
   if (is(GEO, GEOqueryClass)) {
     return(GEO)
-  } else if(!is.character(GEO)){
-    stop("Argument 'GEO' must be a character string")
-  } else if ((length(GEO) != 1)) {
-    stop("Argument 'GEO' must be of length 1")
-  } else if (!grepl(paste0(c("^", GEOqueryClass), collapse = ""), GEO)) {
-    stop(c("Argument ", GEO, " must specify proper ", GEOqueryClass, " accession number"))
   }
+  
+  # Check for valid inputs
+  if (!(is.character(GEO) && length(GEO) == 1)) {
+    stop("Argument 'GEO' must be a character vector of length 1") 
+  }
+  
+  if (!grepl(paste0("^", GEOqueryClass), GEO)) {
+    stop(paste("Invalid GEO accession number. Expected prefix:", GEOqueryClass))
+  }
+  
+  # Retrieve the GEOquery object if all checks pass
   GEOquery::getGEO(GEO, GSEMatrix = FALSE)
 }
 
