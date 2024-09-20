@@ -24,7 +24,7 @@ addGPL <- function(GPL) {
   last_update_date <- processDate(metadata$last_update_date)
   
   # Query if GPL accession is present in Operend
-  query <- queryOperend("GEOPlatform", geo_accession)
+  query <- queryOperend("GEOPlatform", list(geo_accession = geo_accession))
   
   # Stage metadata
   gplList <- list(
@@ -48,7 +48,7 @@ addGPL <- function(GPL) {
   }
     
   # If GPL accession is already present in Operend, return the oldest GPL entity
-  cat("GPL accession number already in Operend, retrieving record:\n")
+  cat(c(geo_accession, "already in Operend, retrieving record:\n"))
   cat(c("GEOPlatform record", opeRend::objectId(query), "retrieved.\n"))
     
   # Check if GPL entity requires updating
@@ -175,7 +175,7 @@ addGSM <- function(GSM) {
   ftpUrl <- getCELurl(metadata$supplementary_file)
   
   # Query if GSM accession is present in Operend
-  query <- queryOperend("GEOSample", geo_accession)
+  query <- queryOperend("GEOSample", list(geo_accession = geo_accession))
   
   # Stage metadata. Add affymetrixCEL ID later
   gsmList <- list(
@@ -275,7 +275,7 @@ addGSE <- function(GSE) {
   last_update_date <- processDate(metadata$last_update_date)
   
   # Query if GSE accession is present in Operend
-  query <- queryOperend("GEOSeries", geo_accession)
+  query <- queryOperend("GEOSeries", list(geo_accession = geo_accession))
   
   # Helper function to process AffymetrixCELSets.
   # Returns NULL if no GSMs in the GSE contain AffymetrixCELs
