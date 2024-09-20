@@ -100,15 +100,15 @@ needsUpdate <- function(entity, last_update_date) {
 #' @title Return first matching CEL file ftp link
 #' @description
 #' Helper function that checks character vector for an ftp link to a CEL file.
-#' @param supplementary_file
+#' @param supplementaryFile
 #' A character vector or \code{NULL}.
 #' @returns A character vector of length 1 representing a ftp link to a CEL file,
 #' OR \code{NULL}.
-getCELurl <- function(supplementary_file) {
-  # Check if supplementary_file is not NULL
-  if (!is.null(supplementary_file)) {
+getCELurl <- function(supplementaryFile) {
+  # Check if supplementaryFile is not NULL
+  if (!is.null(supplementaryFile)) {
     # Find matches for "ftp://(...).CEL.gz" (case insensitive)
-    matches <- supplementary_file[grepl("ftp://(.+)\\.CEL\\.gz$", supplementary_file, ignore.case = TRUE)]
+    matches <- supplementaryFile[grepl("ftp://(.+)\\.CEL\\.gz$", supplementaryFile, ignore.case = TRUE)]
     
     # If there's at least one match, return the first one
     if (length(matches) > 0) {
@@ -116,8 +116,27 @@ getCELurl <- function(supplementary_file) {
     }
   }
   
-  # If supplementary_file is NULL or no matches are found, return NULL
+  # If supplementaryFile is NULL or no matches are found, return NULL
   return(NULL)
+}
+
+#' @name getSubseries
+#' @title Return GSE accession numbers of subseries
+#' @description
+#' Helper function that extracts
+#' @param relationVector
+#' A character vector corresponding to the relation metadata of a GSE
+#' @returns A character vector representing matches for GSE subseries, OR \code{NULL}.
+getSubseries <- function(relationVector) {
+  subseries <- relationVector[grepl("SuperSeries of:", relationVector)]
+  subseriesGSEs <- unlist(regmatches(subseries, gregexpr("GSE[0-9]+", subseries)))
+  
+  # Return NULL if no matches are found
+  if (length(subseriesGSEs) == 0) {
+    return(NULL)
+  }
+  
+  return(subseriesGSEs)
 }
 
 # Wrapper function that returns either the submitted GEOquery object or retrieves GEOquery object based on accession number
