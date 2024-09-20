@@ -26,7 +26,32 @@ geoPermissions <- opeRend::operendPermissions(
 #' processDate("Feb 19 2004")
 #' @importFrom methods as
 processDate <- function(d) {
-  as(as.Date(d, format="%b %d %Y"), "operendDate")
+  # Check that input is a string
+  if (!(is.character(d) && length(d) == 1)) {
+    stop("Argument must be a character vector of length 1")
+  }
+
+  # Check if the input matches "Month DD YYYY" or "Month D YYYY"
+  if(!grepl("^[A-Za-z]+ \\d{1,2} \\d{4}$", d)) {
+    stop("Invalid date format. Expected format is 'Month DD YYYY' (e.g., 'Jan 01 2000' or 'January 1 2000')")
+  }
+  
+  # Attempt to process the date with abbreviated and full month formats
+  processedDate <- tryCatch({
+    as(as.Date(d, format = "%b %d %Y"), "operendDate")
+  }, warning = function(w) {
+    # Try full month format if abbreviated doesn't work
+    as(as.Date(d, format = "%B %d %Y"), "operendDate")
+  }, error = function(e) {
+    stop("Invalid date format, unable to process the date: ", e$message)
+  })
+  
+  # If the conversion resulted in NA, the date is invalid
+  if(is.na(processedDate)) {
+    stop("Invalid date format, check month or day.")
+  }
+  
+  return(processedDate)
 }
 
 #' @name removeNull
