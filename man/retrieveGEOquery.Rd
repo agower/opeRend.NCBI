@@ -4,7 +4,7 @@
 \alias{retrieveGEOquery}
 \title{Retrieve GEOquery object based on th}
 \usage{
-retrieveGEOquery(GEO, GEOqueryClass = NULL)
+retrieveGEOquery(GEO, GEOqueryClass)
 }
 \arguments{
 \item{GEO}{A character vector of length 1 specifying a GEO accession number,

@@ -4,10 +4,10 @@
 \alias{getCELurl}
 \title{Return first matching CEL file ftp link}
 \usage{
-getCELurl(supplementary_file)
+getCELurl(supplementaryFile)
 }
 \arguments{
-\item{supplementary_file}{A character vector or \code{NULL}.}
+\item{supplementaryFile}{A character vector or \code{NULL}.}
 }
 \value{
 A character vector of length 1 representing a ftp link to a CEL file,
