@@ -33,8 +33,15 @@ processDate <- function(d) {
 #' @title Remove \code{NULL} values from a list
 #' @param list_obj A list.
 #' @returns A list with all \code{NULL} values removed.
+#' @importFrom rlist list.clean
 removeNull <- function(list_obj) {
-  Filter(function(x) length(x) != 0, list_obj)
+  rlist::list.clean(
+    list_obj,
+    fun = function(x) {
+      is.null(x) || length(x) == 0 || (is.character(x) && x == "")
+    },
+    recursive = TRUE
+  )
 }
 
 #' @name addGEO
