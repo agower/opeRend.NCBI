@@ -63,7 +63,9 @@ removeNull <- function(list_obj) {
   rlist::list.clean(
     list_obj,
     fun = function(x) {
-      is.null(x) || length(x) == 0 || (is.character(x) && x == "")
+      # The latter check was used to remove empty strings; however, it was getting
+      # unwieldy to use for edge cases.
+      is.null(x) || length(x) == 0 # || (is.character(x) && length(x) == 1 && x == "")
     },
     recursive = TRUE
   )
