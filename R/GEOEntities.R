@@ -385,10 +385,12 @@ addGSE <- function(GSE) {
     cat(c("Updating GEOSeries record", opeRend::objectId(query), ".\n"))
     gseList <- stageGSEList(gseObj, metadata)
     
-    # Delete old affymetrixCELSets after setting variable to NULL
+    # Delete any old CEL sets before updating entity
     old_affymetrixCELSet <- query$affymetrixCELSet
-    opeRend::updateEntity(id = opeRend::objectId(query), variables = list(affymetrixCELSet = NULL))
-    lapply(old_affymetrixCELSet, opeRend::deleteEntity)
+    if(!is.null(old_affymetrixCELSet)) {
+      opeRend::updateEntity(id = opeRend::objectId(query), variables = list(affymetrixCELSet = NULL))
+      lapply(old_affymetrixCELSet, opeRend::deleteEntity)
+    }
     
     gseEntity <- updateGEO(
       id = opeRend::objectId(query),
