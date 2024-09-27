@@ -46,16 +46,16 @@ test_that("processDate handles various cases", {
 })
   
 test_that("removeNull handles various cases", {
-  list1 <- list(a = NULL, b = character(0), c = numeric(0), d = 'test')
+  list1 <- list(a = NULL, b = character(0), c = numeric(0), d = "test")
   list2 <- list(NULL)
-  list3 <- list(a = NULL, b = character(0), c = c(numeric(0), NULL), d = c('test', NULL))
-  list4 <- list(a = 'test1', b = list(b1 = 'test2', b2 = 'test3'))
-  list5 <- list(a = c("", ""), b = 'non-empty', c = character(0))
+  list3 <- list(a = NULL, b = character(0), c = c(numeric(0), NULL), d = c("test", NULL))
+  list4 <- list(a = "test1", b = list(b1 = "test2", b2 = "test3"))
+  list5 <- list(a = c("", ""), b = "non-empty", c = character(0))
   list6 <- list(a = numeric(0), b = NULL, c = "", d = 5)
   
   # List with NULL, empty character, empty numeric, and valid string
   result <- removeNull(list1)
-  expect_equal(result, list(d = 'test'))
+  expect_equal(result, list(d = "test"))
   
   # List containing only NULL should return an empty list
   result <- removeNull(list2)
@@ -63,7 +63,7 @@ test_that("removeNull handles various cases", {
   
   # Nested list with NULLs and empty values should return only the valid string
   result <- removeNull(list3)
-  expect_equal(result, list(d = 'test'))
+  expect_equal(result, list(d = "test"))
   
   # Nested list with valid strings should remain unchanged
   result <- removeNull(list4)
@@ -71,11 +71,11 @@ test_that("removeNull handles various cases", {
   
   # List with an empty string and valid string, should only return the valid string
   result <- removeNull(list5)
-  expect_equal(result, list(a = c("", ""), b = 'non-empty'))
+  expect_equal(result, list(a = c("", ""), b = "non-empty"))
   
   # List with mixed data types: numeric(0), NULL, empty string, and valid numeric
   result <- removeNull(list6)
-  expect_equal(result, list(c = '', d = 5))
+  expect_equal(result, list(c = "", d = 5))
 })
 
 test_that("needsUpdate handles various cases", {
@@ -187,13 +187,13 @@ test_that("retrieveGEOquery handles various cases", {
   result <- retrieveGEOquery(GPLCharacter, "GPL")
   expect_equal(result, GPLObject)
 
-  # Check if an error is thrown when 'GEO' is not a character string (e.g., passing an integer)
+  # Check if an error is thrown when "GEO" is not a character string (e.g., passing an integer)
   expect_error(retrieveGEOquery(1, "GPL"))
   
-  # Check if an error is thrown when 'GEO' is a character vector with length greater than 1
+  # Check if an error is thrown when "GEO" is a character vector with length greater than 1
   expect_error(retrieveGEOquery(c("GPL96", "GPL96"), "GPL"))
   
-  # Check if an error is thrown when 'GEO' specifies a different class
+  # Check if an error is thrown when "GEO" specifies a different class
   expect_error(retrieveGEOquery(GPLCharacter, "GSE"))
 })
 
