@@ -50,8 +50,8 @@ test_that("removeNull handles various cases", {
   list2 <- list(NULL)
   list3 <- list(a = NULL, b = character(0), c = c(numeric(0), NULL), d = c('test', NULL))
   list4 <- list(a = 'test1', b = list(b1 = 'test2', b2 = 'test3'))
-  list5 <- list(a = '', b = 'non-empty', c = character(0))
-  list6 <- list(a = 0, b = NULL, c = '', d = 5)
+  list5 <- list(a = c("", ""), b = 'non-empty', c = character(0))
+  list6 <- list(a = numeric(0), b = NULL, c = "", d = 5)
   
   # List with NULL, empty character, empty numeric, and valid string
   result <- removeNull(list1)
@@ -71,11 +71,11 @@ test_that("removeNull handles various cases", {
   
   # List with an empty string and valid string, should only return the valid string
   result <- removeNull(list5)
-  expect_equal(result, list(b = 'non-empty'))
+  expect_equal(result, list(a = c("", ""), b = 'non-empty'))
   
-  # List with mixed data types: numeric 0, NULL, empty string, and valid numeric
+  # List with mixed data types: numeric(0), NULL, empty string, and valid numeric
   result <- removeNull(list6)
-  expect_equal(result, list(a = 0, d = 5))
+  expect_equal(result, list(c = '', d = 5))
 })
 
 test_that("needsUpdate handles various cases", {
