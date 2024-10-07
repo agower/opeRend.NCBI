@@ -97,17 +97,10 @@ test_that("needsUpdate handles various cases", {
   result <- needsUpdate(entity1, date3)
   expect_equal(result, TRUE)
   
-  # Operend date is NULL, GEO date is present (update needed)
-  result <- needsUpdate(entity2, date1)
-  expect_equal(result, TRUE)
-  
-  # GEO date is NULL, Operend date is present (warning, update needed)
-  warning1 <- "updating Operend entry:\n"
-  expect_warning(needsUpdate(entity1, NULL), warning1)
-  
-  # Both GEO and Operend dates are NULL (warning, no update needed)
-  warning2 <- "skipping update:\n"
-  expect_warning(needsUpdate(entity2, NULL), warning2)
+  # NULL value for Operend or GEO date results in error
+  expect_error(needsUpdate(entity2, date1))
+  expect_error(needsUpdate(entity1, NULL))
+  expect_error(needsUpdate(entity2, NULL))
 })
 
 test_that("getCELurl handles various cases", {
