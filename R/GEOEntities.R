@@ -133,7 +133,7 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
     affymetrixCELList$workFile <- opeRend::objectId(workFile)
     
     affymetrixCELEntity <- updateGEO(
-      id = objectId(existingEntity),
+      id = opeRend::objectId(existingEntity),
       variables = affymetrixCELList
     )
     
