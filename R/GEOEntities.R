@@ -24,7 +24,7 @@ addGPL <- function(GPL) {
   last_update_date <- processDate(metadata$last_update_date)
   
   # Query if GPL accession is present in Operend
-  query <- queryOperend("GEOPlatform", geo_accession)
+  query <- queryOperend("GEOPlatform", list(geo_accession = geo_accession))
   
   # Stage metadata
   gplList <- list(
@@ -48,7 +48,7 @@ addGPL <- function(GPL) {
   }
     
   # If GPL accession is already present in Operend, return the oldest GPL entity
-  cat("GPL accession number already in Operend, retrieving record:\n")
+  cat(c(geo_accession, "already in Operend, retrieving record:\n"))
   cat(c("GEOPlatform record", opeRend::objectId(query), "retrieved.\n"))
     
   # Check if GPL entity requires updating
@@ -133,7 +133,7 @@ addAffymetrixCEL <- function(ftpUrl, existingEntity = NULL) {
     affymetrixCELList$workFile <- opeRend::objectId(workFile)
     
     affymetrixCELEntity <- updateGEO(
-      id = objectId(existingEntity),
+      id = opeRend::objectId(existingEntity),
       variables = affymetrixCELList
     )
     
@@ -175,11 +175,11 @@ addGSM <- function(GSM) {
   ftpUrl <- getCELurl(metadata$supplementary_file)
   
   # Query if GSM accession is present in Operend
-  query <- queryOperend("GEOSample", geo_accession)
+  query <- queryOperend("GEOSample", list(geo_accession = geo_accession))
   
   # Stage metadata. Add affymetrixCEL ID later
   gsmList <- list(
-    affymetrixCEL = NULL,
+    # affymetrixCEL = NULL,
     
     channel_count = as.numeric(metadata$channel_count),
     characteristics_ch1 = metadata$characteristics_ch1,
@@ -198,10 +198,9 @@ addGSM <- function(GSM) {
     type = metadata$type
   )
   
-  # If GPL accession is not present in Operend, add GPL entity
-  if(is.null(query)) {
-    # If CEL file specified in metadata, download CEL file,
-    # then add to Operend and retrieve ID.
+  # If GSM accession is not present in Operend, add GSM entity
+  if (is.null(query)) {
+    # If CEL file specified in metadata, download CEL file, then add to Operend and retrieve ID.
     if (!is.null(ftpUrl)) {
       gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(ftpUrl))
     }
@@ -218,16 +217,11 @@ addGSM <- function(GSM) {
   cat("GSM accession number already in Operend, retrieving record:\n")
   cat(c("GEOSample record", opeRend::objectId(query), "retrieved.\n"))
   
-  # Check if GSM entity requires updating
-  if(needsUpdate(query, last_update_date)) {
-    cat("Updating GEOSample entity:\n")
+  # If a supplementary file has been newly added to an existing entity, update entity
+  if ((is.null(query$affymetrixCEL) & !is.null(ftpUrl))) {
+    cat("Adding new CEL file to GEOSample:\n")
+    gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(ftpUrl))
     
-    # If supplementary file present, check if affymetrixCEL requires updating
-    if (!is.null(ftpUrl)) {
-      existingEntity <- getEntity(query$affymetrixCEL)
-      gsmList$affymetrixCEL <- opeRend::objectId(addAffymetrixCEL(ftpUrl, existingEntity))
-    }
-
     gsmEntity <- updateGEO(
       id = opeRend::objectId(query),
       variables = gsmList
@@ -236,9 +230,63 @@ addGSM <- function(GSM) {
     return(gsmEntity)
   }
   
-  # If no update is needed, return the existing entry
+  if (!is.null(query$affymetrixCEL)) {
+    # If supplementary file has been newly deleted from an existing entity, remove from entity
+    if (is.null(ftpUrl)) {
+      cat("Removing CEL file from GEOSample:\n")
+      
+      affy <- opeRend::getEntity(query$affymetrixCEL)
+      
+      # Trash workFile
+      opeRend::updateWorkFileProperties(affy$workFile, isTrashed = TRUE)
+      
+      # Delete affyCEL
+      gsmEntity <- opeRend::updateEntity(
+        id = opeRend::objectId(query),
+        variables = list(affymetrixCEL = NULL)
+      )
+      
+      tryCatch(
+        {
+          # Attempt to delete the entity
+          opeRend::deleteEntity(opeRend::objectId(affy))
+        },
+        error = function(e) {
+          # Check if the error message matches the database error you're handling
+          if (grepl("Entities exist that refer to this entity", e$message)) {
+            cat("Failed to delete entity ", opeRend::objectId(affy), ": Entities exist that refer to this entity.\n")
+            
+            ### Need to add logic for handling affymetrixCEL set eventually
+            
+          } else {
+            # Handle any other error
+            stop(e)
+          }
+        }
+      )
+      
+      return(gsmEntity)
+    }
+    
+    # If supplementary file present, check if affymetrixCEL requires updating
+    addAffymetrixCEL(ftpUrl, opeRend::getEntity(query$affymetrixCEL))
+  }
+  
+  # Check if only GSM metadata requires updating
+  if (needsUpdate(query, last_update_date)) {
+    cat("Updating GEOSample metadata:\n")
+    
+    gsmEntity <- updateGEO(
+      id = opeRend::objectId(query),
+      variables = gsmList
+    )
+    return(gsmEntity)
+  }
+  
+  # If no updates are needed, return existing entry
   return(query)
 }
+
 
 #' @name addGSE
 #' @title Add GEO Series to Operend
@@ -275,7 +323,7 @@ addGSE <- function(GSE) {
   last_update_date <- processDate(metadata$last_update_date)
   
   # Query if GSE accession is present in Operend
-  query <- queryOperend("GEOSeries", geo_accession)
+  query <- queryOperend("GEOSeries", list(geo_accession = geo_accession))
   
   # Helper function to process AffymetrixCELSets.
   # Returns NULL if no GSMs in the GSE contain AffymetrixCELs
@@ -385,10 +433,12 @@ addGSE <- function(GSE) {
     cat(c("Updating GEOSeries record", opeRend::objectId(query), ".\n"))
     gseList <- stageGSEList(gseObj, metadata)
     
-    # Delete old affymetrixCELSets after setting variable to NULL
+    # Delete any old CEL sets before updating entity
     old_affymetrixCELSet <- query$affymetrixCELSet
-    opeRend::updateEntity(id = opeRend::objectId(query), variables = list(affymetrixCELSet = NULL))
-    lapply(old_affymetrixCELSet, opeRend::deleteEntity)
+    if(!is.null(old_affymetrixCELSet)) {
+      opeRend::updateEntity(id = opeRend::objectId(query), variables = list(affymetrixCELSet = NULL))
+      lapply(old_affymetrixCELSet, opeRend::deleteEntity)
+    }
     
     gseEntity <- updateGEO(
       id = opeRend::objectId(query),

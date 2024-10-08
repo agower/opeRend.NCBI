@@ -26,15 +26,49 @@ geoPermissions <- opeRend::operendPermissions(
 #' processDate("Feb 19 2004")
 #' @importFrom methods as
 processDate <- function(d) {
-  as(as.Date(d, format="%b %d %Y"), "operendDate")
+  # Check that input is a string
+  if (!(is.character(d) && length(d) == 1)) {
+    stop("Argument must be a character vector of length 1")
+  }
+
+  # Check if the input matches "Month DD YYYY" or "Month D YYYY"
+  if(!grepl("^[A-Za-z]+ \\d{1,2} \\d{4}$", d)) {
+    stop("Invalid date format. Expected format is 'Month DD YYYY' (e.g., 'Jan 01 2000' or 'January 1 2000')")
+  }
+  
+  # Attempt to process the date with abbreviated and full month formats
+  processedDate <- tryCatch({
+    as(as.Date(d, format = "%b %d %Y"), "operendDate")
+  }, warning = function(w) {
+    # Try full month format if abbreviated doesn't work
+    as(as.Date(d, format = "%B %d %Y"), "operendDate")
+  }, error = function(e) {
+    stop("Invalid date format, unable to process the date: ", e$message)
+  })
+  
+  # If the conversion resulted in NA, the date is invalid
+  if(is.na(processedDate)) {
+    stop("Invalid date format, check month or day.")
+  }
+  
+  return(processedDate)
 }
 
 #' @name removeNull
 #' @title Remove \code{NULL} values from a list
 #' @param list_obj A list.
 #' @returns A list with all \code{NULL} values removed.
+#' @importFrom rlist list.clean
 removeNull <- function(list_obj) {
-  Filter(function(x) length(x) != 0, list_obj)
+  rlist::list.clean(
+    list_obj,
+    fun = function(x) {
+      # The latter check was used to remove empty strings; however, it was getting
+      # unwieldy to use for edge cases.
+      is.null(x) || length(x) == 0 # || (is.character(x) && length(x) == 1 && x == "")
+    },
+    recursive = TRUE
+  )
 }
 
 #' @name addGEO
@@ -92,6 +126,12 @@ updateGEO <- function(id, variables) {
 #' A character vector of length 1 representing an operendDate.
 #' @returns A character vector of length 1 representing a formatted operendDate. 
 needsUpdate <- function(entity, last_update_date) {
+  # GEO entries will always have an update date; if NULL, throw error
+  if (is.null(entity$last_update_date) || is.null(last_update_date)) {
+    stop("NULL update date entered for Operend or GEO entries")
+    # return(FALSE)
+  }
+  
   # TRUE if entity is not up to date, FALSE if up to date
   entity$last_update_date != last_update_date
 }
@@ -148,16 +188,22 @@ getSubseries <- function(relationVector) {
 #' the GEOquery GEO object to be returned.
 #' @importFrom methods is
 #' @returns A GEOquery GEO object.
-retrieveGEOquery <- function(GEO, GEOqueryClass = NULL) {
+retrieveGEOquery <- function(GEO, GEOqueryClass) {
+  # Check if the input is already of the desired class
   if (is(GEO, GEOqueryClass)) {
     return(GEO)
-  } else if(!is.character(GEO)){
-    stop("Argument 'GEO' must be a character string")
-  } else if ((length(GEO) != 1)) {
-    stop("Argument 'GEO' must be of length 1")
-  } else if (!grepl(paste0(c("^", GEOqueryClass), collapse = ""), GEO)) {
-    stop(c("Argument ", GEO, " must specify proper ", GEOqueryClass, " accession number"))
   }
+  
+  # Check for valid inputs
+  if (!(is.character(GEO) && length(GEO) == 1)) {
+    stop("Argument 'GEO' must be a character vector of length 1") 
+  }
+  
+  if (!grepl(paste0("^", GEOqueryClass), GEO)) {
+    stop(paste("Invalid GEO accession number. Expected prefix:", GEOqueryClass))
+  }
+  
+  # Retrieve the GEOquery object if all checks pass
   GEOquery::getGEO(GEO, GSEMatrix = FALSE)
 }
 
@@ -168,19 +214,22 @@ retrieveGEOquery <- function(GEO, GEOqueryClass = NULL) {
 #' least recently added entry.
 #' @param class A character vector of length 1 specifying the Operend \code{EntityClass}
 #' of a GEO entity.
-#' @param accession A character vector of length 1 specifying the GEO accession number
-#' of the GEO class to be queried.
+#' @param variables A named list indicating variables in the Operend Entity to search for.
 #' @returns An \code{\linkS4class{operendEntity}} object, or \code{NULL}.
-queryOperend <- function(class, accession) {
+queryOperend <- function(class, variables) {
   # Query if accession number for class is present in Operend
-  query <- opeRend::listEntities(class, variables = list(geo_accession = accession))
+  query <- opeRend::listEntities(class, variables)
+  queryLength <- length(query)
   
-  # Return Operend entity if present. If multiple entries, return least recent.
-  if(length(query) == 0) {
-    entity <- NULL
-  } else {
-    entity <- query[[length(query)]]
+  # Return NULL if no entity available
+  if(queryLength == 0) {
+    return(NULL)
   }
   
-  return(entity)
+  if(queryLength > 1) {
+    warning("More than one entry found, returning least recent entity:\n")
+  }
+  
+  # Return least recent Operend entity
+  return(query[[queryLength]])
 }  

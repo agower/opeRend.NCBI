@@ -4,14 +4,13 @@
 \alias{queryOperend}
 \title{Query Operend for GEO accession number}
 \usage{
-queryOperend(class, accession)
+queryOperend(class, variables)
 }
 \arguments{
 \item{class}{A character vector of length 1 specifying the Operend \code{EntityClass}
 of a GEO entity.}
 
-\item{accession}{A character vector of length 1 specifying the GEO accession number
-of the GEO class to be queried.}
+\item{variables}{A named list indicating variables in the Operend Entity to search for.}
 }
 \value{
 An \code{\linkS4class{operendEntity}} object, or \code{NULL}.

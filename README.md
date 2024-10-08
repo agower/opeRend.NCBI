@@ -46,13 +46,14 @@ The GEOSample entity class captures GEO Series (GSE) record fields, refers to on
 |------------------|-------|------|-------------|
 | geo_accession    | FALSE | Text | 'Series_geo_accession' field of GEO record (e.g., 'GSE1234') |
 | title            | FALSE | Text | 'Series_title' field of GEO record |
+| relation         | TRUE  | Text | 'Series_relation' field of GEO record |
 | summary          | TRUE  | Text | 'Series_summary' field(s) of GEO record |
 | type             | TRUE  | Text | 'Series_type' field(s) of GEO record (e.g., 'Expression profiling by array') |
 | platform_id      | TRUE  | Text | 'Series_platform_id' field(s) of GEO record (e.g., 'GPL1234') |
 | pubmed_id        | TRUE  | Integer | 'Series_pubmed_id' field(s) of GEO record |
 | geoPlatforms     | TRUE  | Entity (GEOPlatform) | IDs of GEOPlatform Entities corresponding to this Series |
 | geoSamples       | TRUE  | Entity (GEOSample) | IDs of GEOSample Entities corresponding to this Series |
-| affymetrixCELSet | FALSE | Entity (AffymetrixCELSet) | ID of an AffymetrixCELSet Entity corresponding to this Series |
+| affymetrixCELSet | TRUE  | Entity (AffymetrixCELSet) | IDs of AffymetrixCELSet Entities corresponding to this Series |
 
-* The `summary`, `type`, `platform_id`, and `pubmed_id` variables are array-type because a Series record may contain more than one entry for each of these fields.
+* The `relation`, `summary`, `type`, `platform_id`, and `pubmed_id` variables are array-type because a Series record may contain more than one entry for each of these fields.
 * Similarly, the entity may refer to more than one GEOPlatform (e.g., methylation and expression arrays).
